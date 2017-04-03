@@ -1,0 +1,104 @@
+ % Collin Atkins
+ % Assignment 5: IQ Puzzle Solver
+ % CS 4003 Section 1
+ % 3/8/16, Due 3/31/16
+ % Solves Cracker Barrel Puzzles
+ 
+ % Solves it by choosing a valid jump each turn based on what pegs occupy which
+ %  spots on the board.
+ % Occupied is incomplete. Only says that spots are unoccupied if the pegs
+ %  were removed last turn. Tried to get it to work by changing Time-1 to
+ %  1..Time-1 but that does not work because it removes them for all
+ %  cases without considering if the peg was placed back. Also tried
+ %  it for the add case but it does not consider if it was removed.
+ %  Somehow it must say that it is removed/added unless it was added/removed
+ %  at Time-1, for considering the times before it. However, after mulling over
+ %  it many hours I cannot figure out how to do it in clingo.
+
+% board(Row,Clmn,Occupied); Occupied if 1, Unoccupied if 0.
+board(1,1,1).
+board(2,1,0). board(2,2,1).
+board(3,1,1). board(3,2,1). board(3,3,1).
+board(4,1,1). board(4,2,1). board(4,3,1). board(4,4,1).
+board(5,1,1). board(5,2,1). board(5,3,1). board(5,4,1). board(5,5,1).
+
+% Game goes for a max of 14 turns since there is 15 pegs and one is lost each turn
+#const endOfTime = 13.
+time(0..endOfTime).
+
+% Which holes are occupied at which times
+% Seperate because it is the init time of 0 and cannot be checked at Time-1.
+occupied(Time,Row,Clmn)
+  :- time(Time), Time < 1,
+  board(Row,Clmn,1).
+% Occupied if it was not jumped over or jumped from last turn
+occupied(Time,Row,Clmn)
+  :- time(Time), Time > 0,
+  board(Row,Clmn,_),
+  not chooseJump(Time-1,Row,Clmn,_,_,_,_),
+  not chooseJump(Time-1,_,_,_,_,Row,Clmn).
+% Occupied if it was jumped to last turn
+occupied(Time,Row,Clmn)
+  :- time(Time), Time > 0,
+  board(Row,Clmn,_),
+  chooseJump(Time-1,_,_,Row,Clmn,_,_).
+
+% Finds all possible jumps for the six ways a peg can jump
+% North Jump
+possibleJumps(Time,FromR,FromC,ToR,ToC,OverR,OverC)
+  :- jumpFrom(Time,FromR,FromC), jumpTo(Time,ToR,ToC),
+  ToR = FromR + 2, ToC = FromC,
+  OverR = FromR + 1, OverC = FromC,
+  occupied(Time,OverR,OverC).
+% South Jump
+possibleJumps(Time,FromR,FromC,ToR,ToC,OverR,OverC)
+  :- jumpFrom(Time,FromR,FromC), jumpTo(Time,ToR,ToC),
+  ToR = FromR - 2, ToC = FromC,
+  OverR = FromR - 1, OverC = FromC,
+  occupied(Time,OverR,OverC).
+% East Jump
+possibleJumps(Time,FromR,FromC,ToR,ToC,OverR,OverC)
+  :- jumpFrom(Time,FromR,FromC), jumpTo(Time,ToR,ToC),
+  ToR = FromR, ToC = FromC - 2,
+  OverR = FromR, OverC = FromC - 1,
+  occupied(Time,OverR,OverC).
+% West Jump
+possibleJumps(Time,FromR,FromC,ToR,ToC,OverR,OverC)
+  :- jumpFrom(Time,FromR,FromC), jumpTo(Time,ToR,ToC),
+  ToR = FromR, ToC = FromC + 2,
+  OverR = FromR, OverC = FromC + 1,
+  occupied(Time,OverR,OverC).
+% Southeast Jump
+possibleJumps(Time,FromR,FromC,ToR,ToC,OverR,OverC)
+  :- jumpFrom(Time,FromR,FromC), jumpTo(Time,ToR,ToC),
+  ToR = FromR - 2, ToC = FromC - 2,
+  OverR = FromR - 1, OverC = FromC - 1,
+  occupied(Time,OverR,OverC).
+% Northwest Jump
+possibleJumps(Time,FromR,FromC,ToR,ToC,OverR,OverC)
+  :- jumpFrom(Time,FromR,FromC), jumpTo(Time,ToR,ToC),
+  ToR = FromR + 2, ToC = FromC + 2,
+  OverR = FromR + 1, OverC = FromC + 1,
+  occupied(Time,OverR,OverC).
+
+% One jump per turn is chosen from the possible jumps
+1 { chooseJump(Time,FromR,FromC,ToR,ToC,OverR,OverC) 
+  : possibleJumps(Time,FromR,FromC,ToR,ToC,OverR,OverC) } 1 :- time(Time).
+  
+% Peg can be jumped from if it is on the board and it is occupied
+jumpFrom(Time,FromR,FromC)
+  :- time(Time), board(FromR,FromC,_),
+  occupied(Time,FromR,FromC).
+
+% Spot can be jumped to if it is on the board and it is not occupied
+jumpTo(Time,ToR,ToC)
+  :- time(Time), board(ToR,ToC,_),
+  not occupied(Time,ToR,ToC).
+
+% Jump is chosen at time if it can be jumped to, from, over and is a chosen jump
+nextJump(Time,FromR,FromC,ToR,ToC)
+  :- jumpFrom(Time,FromR,FromC), jumpTo(Time,ToR,ToC),
+  chooseJump(Time,FromR,FromC,ToR,ToC,OverR,OverC).
+
+#show occupied/3.
+#show nextJump/5.

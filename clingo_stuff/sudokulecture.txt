@@ -1,0 +1,7 @@
+1] - for all blank squares
+   - if the value at the blank square is forced, fill it in.
+2] check to see if any rules are violated
+  * only move to step 3 if step 1 has been exhausted
+3] - pick a cell (say the first blank one)
+   - find all its legal contents
+   - try them all via recursion

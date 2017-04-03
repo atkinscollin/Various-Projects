@@ -1,0 +1,71 @@
+ % Collin Atkins
+ % Assignment 4: Clingo Sudoku
+ % CS 4003 Section 1
+ % 3/8/16
+ % Sudoku Board Solver
+
+inputColor(1,6,1). inputColor(1,8,5). inputColor(1,9,9).
+inputColor(2,2,3). inputColor(2,5,8). inputColor(2,8,6).
+inputColor(3,2,5). inputColor(3,4,9). inputColor(3,7,2). inputColor(3,9,3).
+inputColor(4,3,6). inputColor(4,4,7). inputColor(4,5,5). inputColor(4,6,2).
+inputColor(5,2,1). inputColor(5,5,9). inputColor(5,8,2).
+inputColor(6,1,7). inputColor(6,4,1). inputColor(6,5,6). inputColor(6,6,3).
+inputColor(7,1,1). inputColor(7,3,9). inputColor(7,6,6). inputColor(7,8,4).
+inputColor(8,2,6). inputColor(8,5,2). inputColor(8,7,8).
+inputColor(9,1,2). inputColor(9,2,4). inputColor(9,4,3).
+
+coord(1..9).
+label(Num) :- coord(Num).
+block(Blk) :- coord(Blk).
+cell(Row,Clmn) :- coord(Row), coord(Clmn).
+
+% All rows and columns possible in a block
+inBlock(Blk,Row,Clmn)
+  :- cell(Row,Clmn), block(Blk),
+  Row <= (Blk+2)/3 * 3,
+  Row >= (Blk+2)/3 * 3 - 2,
+  Clmn <= (((Blk-1)\3)*3) + 3,
+  Clmn >= (((Blk-1)\3)*3) + 1.
+
+sameCell(Row,Clmn,Row,Clmn) :- cell(Row,Clmn).
+sameRow(Row,Clmn1,Row,Clmn2) :- cell(Row,Clmn1), cell(Row,Clmn2).
+sameClmn(Row1,Clmn,Row2,Clmn) :- cell(Row1,Clmn), cell(Row2,Clmn).
+sameBlock(Blk,Row,Clmn,Blk,Row1,Clmn1)
+  :- inBlock(Blk,Row,Clmn),
+  inBlock(Blk,Row1,Clmn1).
+
+% Defines place of color by block and row
+colorAppearsInRow(Blk,Row,Lbl) 
+  :- inputColor(Row,Clmn,Lbl), inBlock(Blk,Row,Clmn).
+% Defines place of color by block and column
+colorAppearsInClmn(Blk,Clmn,Lbl) 
+  :- inputColor(Row,Clmn,Lbl), inBlock(Blk,Row,Clmn).
+
+% 3 labels in a row or column of a block
+3 { colorAppearsInRow(Blk,Row,Lbl) : label(Lbl) } 3 :- inBlock(Blk,Row,_).
+3 { colorAppearsInClmn(Blk,Clmn,Lbl) : label(Lbl) } 3 :- inBlock(Blk,_,Clmn).
+
+% Only 1 label in each cell.
+1 { label(Lbl) : colorAppearsInRow(Blk,Row,Lbl), colorAppearsInClmn(Blk,Clmn,Lbl) } 1 :- cell(Row,Clmn).
+
+% Defines place of color by row and column
+% Same label cannot be in the same block, same row, or same column; but can be in the same cell
+color(Row,Clmn,Lbl) 
+  :- colorAppearsInRow(Blk,Row,Lbl), colorAppearsInClmn(Blk,Clmn,Lbl).
+  
+  :- colorAppearsInRow(Blk1,Row1,Lbl), colorAppearsInClmn(Blk1,Clmn1,Lbl),
+  colorAppearsInRow(Blk2,Row2,Lbl), colorAppearsInClmn(Blk2,Clmn2,Lbl),
+  sameBlock(Blk1,Row1,Clmn1,Blk2,Row2,Clmn2),
+  not sameCell(Row1,Clmn1,Row2,Clmn2).
+  
+  :- colorAppearsInRow(Blk1,Row1,Lbl), colorAppearsInClmn(Blk1,Clmn1,Lbl),
+  colorAppearsInRow(Blk2,Row2,Lbl), colorAppearsInClmn(Blk2,Clmn2,Lbl),
+  sameRow(Row1,Clmn1,Row2,Clmn2),
+  not sameCell(Row1,Clmn1,Row2,Clmn2).
+  
+  :- colorAppearsInRow(Blk1,Row1,Lbl), colorAppearsInClmn(Blk1,Clmn1,Lbl),
+  colorAppearsInRow(Blk2,Row2,Lbl), colorAppearsInClmn(Blk2,Clmn2,Lbl),
+  sameClmn(Row1,Clmn1,Row2,Clmn2),
+  not sameCell(Row1,Clmn1,Row2,Clmn2).
+
+#show color/3.

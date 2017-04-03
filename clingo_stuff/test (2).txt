@@ -1,0 +1,220 @@
+class(cs, 4003, 1, "Prog Langs", mwf, 11, 12, "Subbian").
+class(cs, 4003, 2, "Prog Langs", th, 4, 5, "Schlipf").
+class(cs, 4052, 3, "Prog Langs 2", th, 4, 5, "Schlipf").
+class(cs, 4082, 3, "Prog Langs 3", th, 4, 5, "Schlipf").
+class(cs, 4092, 1, "DB Design&Dev", tr, 9, 11, "Davis").
+class(cs, 6051, 1, "DB Theory", tr, 9, 11, "Cheng").
+
+student("Dough", "Jough", acm444).
+student("Rough", "Richard", acm219).
+student("Cynsdatter", "Cat", acm123).
+student("McConnell", "Mitchell", gop015).
+student("Obama", "Barak", dem008).
+student("Capek", "Hal", ac2001).
+student("Dog", "City", ac2112).
+
+livesIn(acm444, dorma, 1).
+livesIn(acm219, dorma, 1).
+livesIn(acm123, dorma, 2).
+livesIn(gop015, dorma, 2).
+livesIn(dem008, dormb, 1).
+livesIn(ac2001, dormb, 1).
+
+
+reg4(ac2001, cs, 4003, 2).
+reg4(ac2112, cs, 4003, 1).
+reg4(acm219, cs, 4003, 1).
+reg4(acm219, cs, 4092, 1).
+reg4(dem008, cs, 4003, 2).
+reg4(dem008, cs, 4092, 6).
+reg4(dem008, cs, 6051, 1).
+reg4(gop015, cs, 4003, 2).
+reg4(gop015, cs, 4092, 2).
+reg4(gop015, cs, 6051, 2).
+reg4(acm444, cs, 4003, 2).
+reg4(acm444, cs, 4082, 2).
+reg4(acm444, cs, 4052, 2).
+reg4(acm123, cs, 4092, 1).
+
+%*
+reg4(Student, ClassType, ClassNumber, ClassTime)
+ :-
+    class(ClassType, ClassNumber, ClassTime, _, _, _, _, _),
+    student(_, _, Student).
+*%
+
+team("Jeaux", "Neaux", "Napoleon", "Bonaparte").
+team("John", "Snow", "Tyrion", "Lannister").
+team("Nucky", "Thomphson", "Arnold", "Rauthstein").
+
+team(FName1, LName1, FName2, LName2)
+ :- team(FName2, LName2, FName1, LName1).
+
+
+isInstructor(Instructor)
+ :- class(_, _, _, _, _, _, _, Instructor).
+
+roommate(Student1, Student2)
+ :- student(_, _, Student1),
+    student(_, _, Student2),
+    livesIn(Student1, Dorm, RoomNumber),
+    livesIn(Student2, Dorm, RoomNumber),
+    Student1 != Student2.
+
+roommate(Student1, Student2) :- roommate(Student2, Student1).
+
+suffers (Name2, Name1, StudentNmbr, Instr)
+  :- reg4 (StudentNmbr, Dpt, Cls, Sc),
+  student (Name1, Name2, StudentNmbr),
+  class (Dpt, Cls, Sc, ClName, Days, Strt, End, Instr).
+
+suffers(NameA2, NameA1, StudentA, Instr)
+ :- student(NameA1, NameA2, StudentA),
+    student(NameB1, NameB2, StudentB),
+    roommate(StudentA,StudentB),
+    suffers(NameB2, NameB1, StudentB, Instr).
+
+
+takingSameCourse(Student1, Student2, ClassType, ClassNumber)
+ :-
+ student(_, _, Student1),
+ student(_, _, Student2),
+ Student1 != Student2,
+ class(ClassType, ClassNumber, _, _, _, _, _, _),
+ reg4(Student1, ClassType, ClassNumber, _),
+ reg4(Student2, ClassType, ClassNumber, _).
+
+
+
+%* week 4 problem set 1
+Write a query asking for all pairs of students who are taking some
+class in common. (Be careful you don’t report students who are in
+the same class as themselves!)
+*%
+studentsSharingClasses(Student1, Student2)
+ :- student(_, _, Student1),
+    student(_, _, Student2),
+    reg4(Student1, ClassType, ClassNumber, _),
+    reg4(Student2, ClassType, ClassNumber, _),
+    Student1 != Student2.
+
+roommatesSharingClasses(Student1,Student2)
+ :- roommate(Student1,Student2),
+    studentsSharingClasses(Student1, Student2).
+
+studentsTakingThreeCs(Student)
+ :- reg4(Student, cs, Class1, _),
+    reg4(Student, cs, Class2, _),
+    reg4(Student, cs, Class3, _),
+    Class1 != Class2,
+    Class1 != Class3,
+    Class2 != Class3.
+
+%*
+week4 problem set 2, #1
+. Write a clingo query asking for all students who have no classes
+starting after 4 (which, @UC, also implies no morning classes)
+*%
+noClassesAfter4(Student)
+ :- student(_, _, Student),
+    { reg4(Student, _, _, ClassTime) : ClassTime > 4 } 0.
+
+
+%*
+week4 problem set 2, #2
+Write a clingo query asking for all students who are so unlucky as
+to be taking classes only from instructor Schlipf.
+*%
+
+
+onlyTakingSchlipf(Student)
+ :- student(_, _, Student),
+    reg4(Student, ClassType1, ClassNumber1, _),
+    class(ClassType1, ClassNumber1, _, _, _, _, _, "Schlipf"),
+    { reg4(Student, ClassType2, ClassNumber2, _) :
+      class(ClassType2, ClassNumber2, _, _, _, _, _, Instructor),
+      (ClassType2, ClassNumber2) != (ClassType1, ClassNumber1),
+      isInstructor(Instructor),
+      Instructor != "Schlipf"} 0.
+
+
+
+
+%*week 4 problem set 2, #3
+3. Write a clingo query asking for all pair of students who are taking
+exactly two courses in common.
+*%
+twoCourses(Student1, Student2)
+  :-
+  student(_, _, Student1),
+  student(_, _, Student2),
+  Student1 != Student2,
+  2 { takingSameCourse(Student1, Student2, ClassType, ClassNumber) } 2.
+
+%* week4 problem set 2, #4
+4. Write a clingo query asking for all pairs of students who are taking
+exactly the same classes.
+*%
+%*
+allCourses(Student1, Student2)
+  :-
+  student(_, _, Student1),
+  student(_, _, Student2),
+  Student1 != Student2,
+  1 { takingSameCourse(Student1, Student2, ClassType, ClassNumber) },
+  {
+  class(ClassType2, ClassNumber2, _, _, _, _, _, _) :
+  class(ClassType, ClassNumber, _, _, _, _, _, _),
+  (ClassType, ClassNumber) != (ClassType2, ClassNumber2),
+  not takingSameCourse(Student1, Student2, ClassType2, ClassNumber2)
+  } 0.
+*%
+
+%*
+allCourses(Student1, Student2)
+  :-
+  student(_, _, Student1),
+  student(_, _, Student2),
+  Student1 != Student2,
+  1 {
+    takingSameCourse(Student1, Student2, ClassType, ClassNumber)
+  } 10,
+  {
+    reg4(Student1, ClassType2,ClassNumber2, _) :
+    reg4(Student2, ClassType3,ClassNumber3, _),
+    class(ClassType, ClassNumber, _, _, _, _, _, _),
+    (ClassType, ClassNumber) != (ClassType2, ClassNumber2),
+    (ClassType, ClassNumber) != (ClassType3, ClassNumber3),
+    (ClassType2, ClassNumber2) != (ClassType3, ClassNumber3)
+  } 0.
+
+*%
+
+
+allCourses(Student1, Student2)
+  :-
+  student(_, _, Student1),
+  student(_, _, Student2),
+  Student1 != Student2,
+  1 {
+    takingSameCourse(Student1, Student2, ClassType, ClassNumber)
+  },
+  0 {
+    reg4(Student1, ClassType2,ClassNumber2, _);
+    reg4(Student2, ClassType3,ClassNumber3, _) :
+    class(ClassType2, ClassNumber2, _, _, _, _, _, _),
+    class(ClassType3, ClassNumber3, _, _, _, _, _, _),
+    (ClassType2, ClassNumber2) != (ClassType3, ClassNumber3)
+  } 2.
+
+
+%*
+#show roommate/2.
+#show roommatesSharingClasses/2.
+#show studentsTakingThreeCs/1.
+#show noClassesAfter4/1.
+#show onlyTakingSchlipf/1.
+*%
+#show onlyTakingSchlipf/1.
+#show twoCourses/2.
+#show allCourses/2.
